@@ -1,0 +1,74 @@
+//脚本化流水线
+node {
+    // 定义全局环境变量
+    def remote_name = '10.0.10.211'
+    def remote_host = '10.0.10.211'
+    def remote_user = 'web'
+    def remote_password = 'kxwXVUyG'
+    def remote_path = '/data/build/nodejs/portal-fe-vue3-dev'
+
+    def file_name = 'portal-fe-vue3'
+  // 环境
+    def profile = 'dev'
+    // 项目地址
+    def git_address = 'http://gitlab.dongxinsoft.cn:8088/01_code/DONGXIN/dxportal/portal-fe/portal-fe-ry-vue3.git'
+    // 分支
+    def git_branch = 'dev'
+    // 帐号id
+    def credentialsId = 'jenkins_ci-gitlab'
+
+    stage('checkout and build') {
+         stage('checkout from git') {
+            echo "checkout  from  ${git_address} : ${git_branch}"
+            checkout([$class: 'GitSCM', branches: [[name: "*/${git_branch}"]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: credentialsId, url: "${git_address}"]]])
+        }
+        stage('install') {
+            sh 'pwd'
+            sh 'node -v'
+            sh 'npm -v'
+
+            echo 'ls files'
+            sh 'ls -al'
+
+            echo 'remove node_modules'
+            sh 'rm -rf ./node_modules'
+
+            echo 'install...'
+            // 现在安装依赖包
+            sh 'npm --registry=https://registry.npm.taobao.org install'
+            sh 'npm install'
+            // 安装过程中会执行install.js，install.js会下载chromedriver。
+            // 我们加参数ignore-scripts忽略install.js执行。尤其是在服务器上，下载安装chromedriver会比较麻烦
+            // sh 'npm --registry=http://10.0.10.249:4873 install'
+			// sh 'npm install -g cnpm --registry=https://registry.npm.taobao.org'
+            // sh 'cnpm install vue-print-nb'
+        }
+        stage('build') {
+            echo 'build...'
+            // 构建
+            sh 'npm run dev'
+            echo '看一下打包后的文件目录'
+            sh 'pwd'
+        }
+    }
+    stage('remote ssh') {
+        def remote = [:]
+        remote.name = "${remote_name}"
+        remote.host = "${remote_host}"
+        remote.user = "${remote_user}"
+        remote.password = "${remote_password}"
+        remote.allowAnyHosts = true
+        stage('remote ssh ===> put dist') {
+            sh 'ls -al'
+            // 修改dist的目录名
+            sh "rm -rf ./dist-${file_name}"
+            sh "mv ./dist ./dist-${file_name}"
+            def put_file = "./dist-${file_name}"
+            def put_file_del = "dist-${file_name}"
+            // 删掉服务器上老的dist文件
+            sshCommand remote: remote, command: "rm -rf ${remote_path}/${put_file_del}"
+            // 把新的dist文件夹，传递到服务器
+            sshPut remote: remote, from: put_file, into: "${remote_path}"
+        }
+    }
+}
