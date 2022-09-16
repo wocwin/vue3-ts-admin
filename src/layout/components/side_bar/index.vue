@@ -30,6 +30,7 @@ import SidebarLogo from './SidebarLogo.vue'
 import variables from '@/styles/_variables.scss'
 import store from '@/store'
 import { useRoute } from 'vue-router'
+import { constantRoutes } from '@/router'
 export default defineComponent({
   components: {
     SidebarItem,
@@ -41,7 +42,8 @@ export default defineComponent({
       return store.state.app.sidebar
     })
     const routes = computed(() => {
-      return store.state.permission.routes
+      // return store.state.permission.routes
+      return constantRoutes
     })
     // console.log(666, toRaw(store.getters.permission_routes))
     const showLogo = computed(() => {

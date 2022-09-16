@@ -1,11 +1,7 @@
 <template>
   <div class="navbar">
-    <hamburger
-      id="hamburger-container"
-      :is-active="sidebar.opened"
-      class="hamburger-container"
-      @toggle-click="toggleSideBar"
-    />
+    <hamburger id="hamburger-container" :is-active="sidebar.opened" class="hamburger-container"
+      @toggle-click="toggleSideBar" />
     <breadCrumb id="breadcrumb-container" class="breadcrumb-container" />
     <div class="right-menu">
       <template v-if="device !== 'mobile'">
@@ -15,16 +11,22 @@
       </template>
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
-          <div>{{nickName}}</div>
+          <div>{{nickName||'wocwin'}}</div>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="setting=true">
+            <el-dropdown-item @click="goTo('gitHub')">
+              <span style="display:block;">gitHub地址</span>
+            </el-dropdown-item>
+            <el-dropdown-item divided @click="goTo('gitee')">
+              <span style="display:block;">gitee地址</span>
+            </el-dropdown-item>
+            <el-dropdown-item divided @click="setting=true">
               <span style="display:block;">布局设置</span>
             </el-dropdown-item>
-            <el-dropdown-item divided @click="logout">
+            <!-- <el-dropdown-item divided @click="logout">
               <span style="display:block;">退出登录</span>
-            </el-dropdown-item>
+            </el-dropdown-item> -->
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -76,6 +78,16 @@ export default {
     // const setLayout = () => {
     //   emits('setLayout')
     // }
+    const goTo = (type) => {
+      switch (type) {
+        case 'gitHub':
+          window.open('https://github.com/wocwin/vue3-ts-admin-template.git', '_blank')
+          break
+        case 'gitee':
+          window.open('https://gitee.com/wocwin/vue3.2-ts-webpack-element-puls-template.git', '_blank')
+          break
+      }
+    }
     const state = reactive({
       toggleSideBar: () => {
         store.dispatch('toggleSideBar', false)
@@ -95,6 +107,7 @@ export default {
       }
     })
     return {
+      goTo,
       setting,
       sidebar,
       device,
@@ -167,6 +180,7 @@ export default {
     .avatar-container {
       line-height: 42px;
       margin-right: 30px;
+
       .avatar-wrapper {
         margin-top: 5px;
         position: relative;

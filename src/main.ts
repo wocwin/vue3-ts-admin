@@ -14,7 +14,7 @@ import 'normalize.css'
 // 自定义指令引入
 import * as directives from '@/directives'
 // 权限控制
-import './permission'
+// import './permission'
 // 全局组件引入
 import SvgIcon from '@/components/SvgIcon/index.vue'
 // 图标并进行全局注册
@@ -59,7 +59,7 @@ function render(props = {}) {
     const componentConfig = requireComponent(filePath)
     const fileName = validateFileName(filePath)
     const componentName =
-      fileName.toLowerCase() === 'index'
+      typeof fileName == 'string' && fileName.toLowerCase() === 'index'
         ? capitalizeFirstLetter(componentConfig.default.name)
         : fileName
     instance?.component(
