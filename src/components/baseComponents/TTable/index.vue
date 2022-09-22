@@ -16,16 +16,26 @@
         </div>
       </div>
     </div>
-    <el-table ref="TTable" :data="state.tableData" :class="{'highlightCurrentRow':highlightCurrentRow}" v-bind="$attrs"
-      size="default" :highlight-current-row="highlightCurrentRow" :border="table.border"
-      :cell-class-name="cellClassNameFuc">
+    <el-table ref="TTable" :data="state.tableData"
+      :class="{'cursor':isCopy,'highlightCurrentRow':highlightCurrentRow,'radioStyle':(table.firstColumn&&table.firstColumn.type==='radio')}"
+      v-bind="$attrs" size="default" :highlight-current-row="highlightCurrentRow" :border="table.border||isTableBorder"
+      @cell-dblclick="cellDblclick" @row-click="rowClick" :cell-class-name="cellClassNameFuc">
       <!-- 复选框 -->
       <el-table-column v-if="table.firstColumn.type==='selection'" :type="table.firstColumn.type"
         :width="table.firstColumn.width||55" :reserve-selection="table.firstColumn.isPaging||false"
         :label="table.firstColumn.label" :align="table.firstColumn.align||'center'" :fixed="table.firstColumn.fixed"
         v-bind="$attrs"></el-table-column>
+      <!-- 单选框 -->
+      <el-table-column :type="table.firstColumn.type" :width="table.firstColumn.width||50"
+        :label="table.firstColumn.label" :fixed="table.firstColumn.fixed" :align="table.firstColumn.align||'center'"
+        v-if="table.firstColumn.type==='radio'">
+        <template #default="scope">
+          <el-radio v-model="radioVal" :label="scope.$index+1"
+            @click.native.prevent="radioChange(scope.row,scope.$index+1)"></el-radio>
+        </template>
+      </el-table-column>
       <!-- 序列号 -->
-      <el-table-column :type="table.firstColumn.type" :width="table.firstColumn.width||55"
+      <el-table-column :type="table.firstColumn.type" :width="table.firstColumn.width||50"
         :label="table.firstColumn.label||'序列'" :fixed="table.firstColumn.fixed"
         :align="table.firstColumn.align||'center'" v-if="table.firstColumn.type==='index'" v-bind="$attrs">
         <template #default="scope">
@@ -39,9 +49,11 @@
           <!-- 常规列 -->
           <el-table-column v-if="item.isShowCol===false?item.isShowCol:true" :key="index+'i'" :type="item.type"
             :label="item.label" :prop="item.prop" :min-width="item['min-width'] || item.minWidth || item.width"
-            :sortable="item.sort||sortable" :render-header="item.renderHeader" :align="item.align || 'center'"
-            :fixed="item.fixed" :show-overflow-tooltip="item.noShowTip===false?item.noShowTip:true"
-            v-bind="{...item.bind,...$attrs}">
+            :sortable="item.sort||sortable" :align="item.align || 'center'" :fixed="item.fixed"
+            :show-overflow-tooltip="item.noShowTip===false?item.noShowTip:true" v-bind="{...item.bind,...$attrs}">
+            <template #header v-if="item.renderHeader">
+              <render-header :column="item" :render="item.renderHeader" />
+            </template>
             <template #default="scope">
               <!-- render渲染 -->
               <template v-if="item.render">
@@ -60,7 +72,10 @@
                     :scope="scope" />
                 </single-edit-cell>
               </template>
-              <div v-if="!item.render&&!item.slotName&&!item.canEdit">
+              <!-- 字典过滤 -->
+              <template v-if="item.filters&&item.filters.list">{{
+              constantEscape(scope.row[item.prop],table.listTypeInfo[item.filters.list],(item.filters.key||'value'),(item.filters.label||'label'))}}</template>
+              <div v-if="!item.render&&!item.slotName&&!item.canEdit&&!item.filters">
                 <span>{{scope.row[item.prop]}}</span>
               </div>
             </template>
@@ -113,11 +128,14 @@ export default {
 </script>
 <script setup lang="ts">
 import { computed, ref, watch, useSlots, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import store from '@/store'
 import SingleEditCell from './singleEditCell.vue'
 import ColumnSet from './ColumnSet.vue'
 import RenderCol from './renderCol.vue'
+import RenderHeader from './renderHeader.vue'
 import TTableColumn from './TTableColumn.vue'
+import useClipboard from 'vue-clipboard3'
 const props = defineProps({
   // table所需数据
   table: {
@@ -139,6 +157,21 @@ const props = defineProps({
   title: {
     type: String
   },
+  // 是否复制单元格
+  isCopy: {
+    type: Boolean,
+    default: true
+  },
+  // 是否开启点击整行选中单选框
+  rowClickRadio: {
+    type: Boolean,
+    default: true
+  },
+  // 是否显示分页
+  isShowPagination: {
+    type: Boolean,
+    default: true
+  },
   // 是否开启编辑保存按钮
   isShowFooterBtn: {
     type: Boolean,
@@ -154,11 +187,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 是否显示分页
-  isShowPagination: {
-    type: Boolean,
-    default: true
-  },
   // 是否开启合计行隐藏复选框/单选框/序列
   isTableColumnHidden: {
     type: Boolean,
@@ -171,20 +199,25 @@ const props = defineProps({
 })
 // 初始化数据
 let state = reactive({
-  firstCol: props.table.firstColumn,
   tableData: props.table.data,
   columnSet: []
 })
+// 单选框
+const radioVal = ref(null)
+// 判断单选选中及取消选中
+const forbidden = ref(true)
+// 获取复制的方法
+const { toClipboard } = useClipboard()
 // 获取ref
 const TTable: any = ref<HTMLElement | null>(null)
 // 抛出事件
-const emits = defineEmits(['save', 'page-change', 'sort-change', 'handleEvent'])
+const emits = defineEmits(['save', 'page-change', 'handleEvent', 'radioChange'])
 // 获取所有插槽
 const slots = useSlots()
 watch(
   () => props.table.data,
   (val) => {
-    console.log(111, val)
+    // console.log(111, val)
     state.tableData = val
   },
   { deep: true }
@@ -196,6 +229,21 @@ onMounted(() => {
 const btnPremissions = computed(() => {
   return store.getters.permissions
 })
+// 过滤字典
+/**
+ * 下拉数据回显中文过滤器
+ * @param [String,Number] value 需要转中文的key值
+ * @param {String} list  数据源
+ * @param [String,Number] key  数据源的key字段（默认：value）
+ * @param {String} label  数据源的label字段（默认：label）
+ */
+const constantEscape = (value, list, key, label) => {
+  const res = list.find((item) => {
+    return item[key] === value
+  })
+  return res && res[label]
+}
+// 所有列（表头数据）
 const renderColumns = computed(() => {
   return state.columnSet.length > 0 ? state.columnSet.reduce((acc: any, cur: any) => {
     if (!cur.hidden) {
@@ -209,7 +257,10 @@ const renderColumns = computed(() => {
     return acc
   }, []) : props.columns
 })
-const cellClassNameFuc = (row) => {
+// 判断如果有表头合并就自动开启单元格缩放
+const isTableBorder = computed(() => { return renderColumns.value.some((item: any) => item.children) })
+// 合并行隐藏复选框/单选框
+const cellClassNameFuc = ({ row }) => {
   if (!props.isTableColumnHidden) {
     return false
   }
@@ -217,20 +268,55 @@ const cellClassNameFuc = (row) => {
     return 'table_column_hidden'
   }
 }
-// 清空排序条件
-const clearSort = () => {
-  return TTable.value.clearSort()
+// forbidden取值（选择单选或取消单选）
+const isForbidden = () => {
+  forbidden.value = false
+  setTimeout(() => {
+    forbidden.value = true
+  }, 0)
 }
-// 取消某一项选中项
-const toggleRowSelection = (row, selected = false) => {
-  return TTable.value.toggleRowSelection(row, selected)
+// 单选抛出事件radioChange
+const radioClick = (row, index) => {
+  forbidden.value = !!forbidden.value
+  if (radioVal.value) {
+    if (radioVal.value === index) {
+      radioVal.value = null
+      isForbidden()
+      // 取消勾选就把回传数据清除
+      emits('radioChange', null, radioVal.value)
+    } else {
+      isForbidden()
+      radioVal.value = index
+      emits('radioChange', row, radioVal.value)
+    }
+  } else {
+    isForbidden()
+    radioVal.value = index
+    emits('radioChange', row, radioVal.value)
+  }
 }
-// 清空复选框
-const clearSelection = () => {
-  return TTable.value.clearSelection()
+// 点击单选框单元格触发事件
+const radioChange = (row, index) => {
+  radioClick(row, index)
 }
-// 暴露方法出去
-defineExpose({ clearSelection, toggleRowSelection, clearSort })
+// 点击某行事件
+const rowClick = (row) => {
+  if (props.rowClickRadio) {
+    radioClick(row, props.table.data.indexOf(row) + 1)
+  }
+}
+// 双击复制单元格内容
+const cellDblclick = async (row, column) => {
+  if (!props.isCopy) {
+    return false
+  }
+  try {
+    await toClipboard(row[column.property])
+    ElMessage.success('已复制')
+  } catch (e) {
+    ElMessage.error('复制失败')
+  }
+}
 // 判断是否使用漏了某个插槽
 const isShow = (name) => {
   return Object.keys(slots).includes(name)
@@ -293,6 +379,23 @@ const handleEvent = (type, val) => {
 const handlesCurrentChange = (val) => {
   emits('page-change', val)
 }
+/**
+ * 公共方法
+ */
+// 清空排序条件
+const clearSort = () => {
+  return TTable.value.clearSort()
+}
+// 取消某一项选中项
+const toggleRowSelection = (row, selected = false) => {
+  return TTable.value.toggleRowSelection(row, selected)
+}
+// 清空复选框
+const clearSelection = () => {
+  return TTable.value.clearSelection()
+}
+// 暴露方法出去
+defineExpose({ clearSelection, toggleRowSelection, clearSort })
 </script>
 <style lang="scss" scoped>
 .t-table {
@@ -388,6 +491,34 @@ const handlesCurrentChange = (val) => {
 
   .marginBttom {
     margin-bottom: -8px;
+  }
+
+  // 单选样式
+  .radioStyle {
+    :deep(.el-radio) {
+      .el-radio__label {
+        display: none;
+      }
+
+      &:focus:not(.is-focus):not(:active):not(.is-disabled) .el-radio__inner {
+        box-shadow: none;
+      }
+    }
+
+    :deep(tbody) {
+      .el-table__row {
+        cursor: pointer;
+      }
+    }
+  }
+
+  // 复制功能样式
+  .cursor {
+    :deep(tbody) {
+      .el-table__row {
+        cursor: pointer;
+      }
+    }
   }
 
   // 每行高度设置

@@ -8,11 +8,11 @@
     "dev": "vue-cli-service build --mode dev",
     "sit": "vue-cli-service build --mode sit",
     "uat": "vue-cli-service build --mode uat",
-    "prod": "vue-cli-service build --mode prod",
-    "deploy": "deploy.sh"
+    "prod": "vue-cli-service build --mode prod"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.0.9",
+    "@wocwin/t-ui-plus": "0.0.3",
     "axios-mapper": "^0.5.9",
     "core-js": "^3.6.5",
     "element-plus": "^2.2.12",
@@ -21,8 +21,10 @@
     "qiankun": "^2.7.4",
     "vue": "^3.2.36",
     "vue-class-component": "^8.0.0-0",
+    "vue-clipboard3": "^2.0.0",
     "vue-demi": "^0.13.6",
     "vue-router": "^4.0.0-0",
+    "vuedraggable": "^4.1.0",
     "vuex": "^4.0.0-0"
   },
   "devDependencies": {
@@ -51,7 +53,6 @@
     "svg-sprite-loader": "5.1.1",
     "typescript": "~4.1.5",
     "typings-for-css-modules-loader": "^1.7.0",
-    "vuedraggable": "^4.1.0",
     "xlsx": "^0.17.0"
   }
 }

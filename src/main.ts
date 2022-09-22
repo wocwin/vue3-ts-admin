@@ -22,6 +22,8 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 // import { getSetting } from '@/utils/setting'
 // // 主题颜色风格初始化
 // theme(getSetting('theme'))
+// 基于 vue3+ ts+ Element-plus 二次封装组件
+import TuiPlus from '@wocwin/t-ui-plus'
 
 let instance: ReturnType<typeof createApp> | null
 
@@ -48,25 +50,26 @@ function render(props = {}) {
     // 如果这个组件选项是通过 `export default` 导出的，那么就会优先使用 `.default`，否则回退到使用模块的根
     SvgIcon.default || SvgIcon
   )
+  instance.use(TuiPlus)
   // 全局自动注册baseComponents下的基础组件
-  const requireComponent = require.context(
-    './components/baseComponents',
-    true,
-    /\.vue$/
-  )
-  // 找到组件文件夹下以.vue命名的文件，如果文件名为index，那么取组件中的name作为注册的组件名
-  requireComponent.keys().forEach(filePath => {
-    const componentConfig = requireComponent(filePath)
-    const fileName = validateFileName(filePath)
-    const componentName =
-      typeof fileName == 'string' && fileName.toLowerCase() === 'index'
-        ? capitalizeFirstLetter(componentConfig.default.name)
-        : fileName
-    instance?.component(
-      componentName,
-      componentConfig.default || componentConfig
-    )
-  })
+  // const requireComponent = require.context(
+  //   './components/baseComponents',
+  //   true,
+  //   /\.vue$/
+  // )
+  // // 找到组件文件夹下以.vue命名的文件，如果文件名为index，那么取组件中的name作为注册的组件名
+  // requireComponent.keys().forEach(filePath => {
+  //   const componentConfig = requireComponent(filePath)
+  //   const fileName = validateFileName(filePath)
+  //   const componentName =
+  //     typeof fileName == 'string' && fileName.toLowerCase() === 'index'
+  //       ? capitalizeFirstLetter(componentConfig.default.name)
+  //       : fileName
+  //   instance?.component(
+  //     componentName,
+  //     componentConfig.default || componentConfig
+  //   )
+  // })
 
   // 自定义指令
   Object.keys(directives).forEach(key => {

@@ -4,10 +4,11 @@
       <t-query-condition :opts="opts" @submit="conditionEnter" @handleEvent="handleEvent" />
     </t-layout-page-item>
     <t-layout-page-item>
-      <t-table ref="selectionTable" title="TTable组件使用" :table="state.table" :columns="state.table.columns"
-        @selection-change="selectionChange">
+      <t-table ref="selectionTable" title="TTable组件--动态显示隐藏列使用" :table="state.table" :columns="state.table.columns"
+        name="vue3TableCol22" columnSetting @selection-change="selectionChange" @radioChange="radioChange">
+        <!-- 插槽渲染 -->
         <template #dateSlot="{scope}">
-          <div>{{scope.row.date}}</div>
+          <div>{{scope.row.date1}}</div>
         </template>
         <template #toolbar>
           <el-button size="default" type="primary" :disabled="state.ids.length<1" @click="cancelSelect">取消选中</el-button>
@@ -21,13 +22,13 @@
 
 <script setup lang="tsx">
 import { ref, computed, reactive } from 'vue'
-const viewDetail = (val) => {
+const viewDetail = val => {
   console.log('viewDetail', val)
 }
-const edit = (val) => {
+const edit = val => {
   console.log('edit', val)
 }
-const nullify = (val) => {
+const nullify = val => {
   console.log('nullify', val)
 }
 const change = (val, type) => {
@@ -39,7 +40,7 @@ let state = reactive({
     phonenumber: null, // 手机号码
     workshopNum: null,
     date: null,
-    date1: null,
+    date1: null
   },
   listTypeInfo: {
     sexList: [
@@ -58,11 +59,13 @@ let state = reactive({
     total: 20,
     currentPage: 1,
     pageSize: 10,
-    firstColumn: { type: 'selection' },
+    firstColumn: { type: 'selection', fixed: true },
+    // 接口返回数据
     data: [
       {
         id: '1',
         date: '2019-09-25',
+        date1: '2019-09-26',
         name: '张三',
         status: '2',
         address: '广东省广州市天河区'
@@ -70,83 +73,102 @@ let state = reactive({
       {
         id: '2',
         date: '2019-09-26',
+        date1: '2019-09-27',
         name: '张三1',
         status: '1',
         address: '广东省广州市天广东省广州市天河区2广东省广州市天河区2河区2'
       },
       {
-        id: '2',
+        id: '3',
         date: '2019-09-26',
+        date1: '2019-09-28',
         name: '张三1',
         status: '1',
         address: '广东省广州市天广东省广州市天河区2广东省广州市天河区2河区2',
-        canBatchAudit: false
       },
       {
-        id: '2',
+        id: '4',
         date: '2019-09-26',
+        date1: '2019-09-29',
         name: '张三1',
         status: '1',
         address: '广东省广州市天广东省广州市天河区2广东省广州市天河区2河区2'
       }
     ],
+    // 表头数据
     columns: [
+      { prop: 'name', label: '姓名', minWidth: '100' },
+      { prop: 'date', label: '日期', minWidth: '180' },
+      // {
+      //   prop: 'status',
+      //   label: '字典过滤',
+      //   minWidth: '120',
+      //   filters: { list: 'statusList', key: 'id', label: 'label' }
+      // },
+
       {
-        prop: '', label: '一级表头', children: [
-          {
-            prop: '', label: '二级级表头', minWidth: '100', children: [
-              { prop: 'name', label: '姓名', minWidth: '100' },
-              { prop: 'date', label: '日期', minWidth: '180' },
-            ]
-          },
-          {
-            prop: 'status', label: 'render方式', minWidth: '220',
-            render: (val) => {
-              let label
-              switch (val) {
-                case '1':
-                  label = '待办'
-                  break
-                case '2':
-                  label = '待提交'
-                  break
-                case '3':
-                  label = '完成'
-                  break
-              }
-              return (
-                <div>{label}</div>
-              )
-            }
+        prop: 'status',
+        label: 'render方式',
+        minWidth: '220',
+        render: val => {
+          let label
+          switch (val) {
+            case '1':
+              label = '待办'
+              break
+            case '2':
+              label = '待提交'
+              break
+            case '3':
+              label = '完成'
+              break
           }
-        ]
-      }
-      ,
-      { prop: 'date', label: '插槽渲染', minWidth: '180', slotName: 'dateSlot' },
-      {
-        prop: 'address', label: '地址', minWidth: '220', canEdit: true, configEdit: {
-          label: '地址',
-          type: 'el-input',
+          return <div>{label}</div>
         }
       },
-      { prop: 'date', label: '日期', minWidth: '180' },
-      { prop: 'address', label: '地址', minWidth: '220' },
-      { prop: 'date', label: '日期', minWidth: '180' },
-      { prop: 'address', label: '地址', minWidth: '220' }
+      { prop: 'date1', label: '日期22', minWidth: '180', slotName: 'dateSlot' },
+      {
+        prop: 'address',
+        label: '地址',
+        minWidth: '220',
+        canEdit: true,
+        configEdit: {
+          label: '地址',
+          type: 'el-input'
+        }
+      }
     ],
+    // 字典渲染数据源
+    listTypeInfo: {
+      statusList: [
+        {
+          id: '1',
+          label: '待办'
+        },
+        {
+          id: '2',
+          label: '待审批'
+        },
+        {
+          id: '3',
+          label: '报废'
+        }
+      ]
+    },
     // 表格内操作列
     operator: [
       {
         text: '查看',
         fun: viewDetail,
+        show: { key: 'status', val: ['1'] }
       },
       {
         text: '编辑',
-        fun: edit,
+        fun: edit
       },
       {
         text: '作废',
-        fun: nullify,
+        fun: nullify
       }
     ],
     // 操作列样式
@@ -181,14 +203,12 @@ const opts = computed(() => {
       label: '日期',
       comp: 'el-date-picker',
       bind: {
-        valueFormat: "YYYY-MM-DD"
+        valueFormat: 'YYYY-MM-DD'
       }
     },
     date: {
       labelRender: () => {
-        return (
-          <label>装炉时间</label>
-        )
+        return <label>装炉时间</label>
       },
       comp: 'el-date-picker',
       span: 2,
@@ -198,9 +218,9 @@ const opts = computed(() => {
         startPlaceholder: '开始日期',
         endPlaceholder: '结束日期',
         valueFormat: 'YYYY-MM-DD',
-        type: "daterange",
+        type: 'daterange'
       }
-    },
+    }
   }
 })
 // 最终参数获取
@@ -213,7 +233,7 @@ const getQueryData = computed(() => {
     phonenumber,
     date1,
     beginDate: date && date[0] ? date[0] : null,
-    endDate: date && date[1] ? date[1] : null,
+    endDate: date && date[1] ? date[1] : null
   }
 })
 // 查询条件change事件
@@ -235,6 +255,10 @@ const conditionEnter = (data: any) => {
 const selectionChange = (val: any) => {
   console.log('选择复选框', val)
   state.ids = val
+}
+// 选择单选框
+const radioChange = (row: any) => {
+  console.log('选择单选框', row)
 }
 // 新增按钮
 const add = () => {
